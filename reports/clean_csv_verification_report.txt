@@ -1,0 +1,23 @@
+Projet DATAImmo - Rapport de vérification des CSV nettoyés
+========================================================================
+Généré le : 08/08/2026 à 20:58:14
+Statut    : VALIDÉ
+
+Volumes des 7 CSV clean :
+------------------------------------------------------------------------
+[OK] region                         19 lignes (attendu : 19)
+[OK] departement                   109 lignes (attendu : 109)
+[OK] commune                     38916 lignes (attendu : 38916)
+[OK] population_commune          34991 lignes (attendu : 34991)
+[OK] type_local                      2 lignes (attendu : 2)
+[OK] bien                        34169 lignes (attendu : 34169)
+[OK] vente                       34169 lignes (attendu : 34169)
+
+Contrôles du modèle final :
+------------------------------------------------------------------------
+[OK] Les colonnes des 7 tables correspondent au modèle final.
+[OK] Les 7 clés primaires sont uniques et non vides.
+[OK] Les 6 relations ne contiennent aucune valeur orpheline.
+[OK] La période des ventes va du 02/01/2020 au 30/06/2020.
+[OK] Les types de biens attendus sont Maison et Appartement.
+[OK] Aucune colonne liée au nom de l'acquéreur n'est exportée.

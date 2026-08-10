@@ -1,0 +1,8 @@
+﻿table_name;csv_rows;expected_rows;status
+region;19;19;OK
+departement;109;109;OK
+commune;38916;38916;OK
+population_commune;34991;34991;OK
+type_local;2;2;OK
+bien;34169;34169;OK
+vente;34169;34169;OK
