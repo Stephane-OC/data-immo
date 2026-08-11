@@ -1,3 +1,13 @@
+"""Vérifie les sept CSV nettoyés du modèle final DATAImmo.
+
+À lancer depuis la racine du projet, après la préparation des données :
+    python scripts/02_verify_clean_csv.py
+
+Les fichiers à contrôler doivent se trouver dans `data/clean`. Le script
+vérifie leur structure, leurs volumes, leurs clés et leurs relations, puis
+génère deux rapports dans `reports`.
+"""
+
 from __future__ import annotations
 
 import argparse
@@ -84,6 +94,7 @@ EXPECTED_ROWS = {
 
 
 def parse_args() -> argparse.Namespace:
+    """Lit les options de ligne de commande et retourne les chemins utilisés."""
     root = Path(__file__).resolve().parents[1]
     parser = argparse.ArgumentParser(description="Vérifie les 7 CSV DATAImmo.")
     parser.add_argument("--clean-dir", type=Path, default=root / "data" / "clean")
@@ -92,6 +103,7 @@ def parse_args() -> argparse.Namespace:
 
 
 def read_csv(path: Path) -> pd.DataFrame:
+    """Charge un CSV nettoyé en conservant toutes les colonnes au format texte."""
     frame = pd.read_csv(
         path,
         sep=";",
@@ -182,6 +194,7 @@ def write_reports(
 
 
 def main() -> None:
+    """Exécute tous les contrôles et génère les rapports de vérification."""
     args = parse_args()
     errors: list[str] = []
     frames: dict[str, pd.DataFrame] = {}

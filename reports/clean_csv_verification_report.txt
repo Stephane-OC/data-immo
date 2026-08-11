@@ -1,6 +1,6 @@
 Projet DATAImmo - Rapport de vérification des CSV nettoyés
 ========================================================================
-Généré le : 10/08/2026 à 14:46:05
+Généré le : 11/08/2026 à 12:57:55
 Statut    : VALIDÉ
 
 Volumes des 7 CSV clean :
