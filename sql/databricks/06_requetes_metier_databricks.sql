@@ -102,22 +102,35 @@ ORDER BY nombre_pieces;
 -- ------------------------------------------------------------
 -- QUESTION 4
 -- Dix départements ayant le prix moyen au m² le plus élevé
+-- Calcul : valeur foncière totale / surface bâtie totale
 -- Résultat : un classement décroissant limité à dix lignes
 -- ------------------------------------------------------------
+WITH ventes_valides AS (
+    SELECT
+        d.code_departement,
+        d.nom_departement,
+        v.valeur_fonciere,
+        b.surface_reelle_bati
+    FROM vente v
+    JOIN bien b
+        ON v.id_bien = b.id_bien
+    JOIN commune c
+        ON b.id_commune = c.id_commune
+    JOIN departement d
+        ON c.code_departement = d.code_departement
+    WHERE v.valeur_fonciere IS NOT NULL
+      AND b.surface_reelle_bati > 0
+)
 SELECT
-    d.code_departement,
-    d.nom_departement,
-    ROUND(AVG(v.valeur_fonciere / b.surface_reelle_bati), 2) AS prix_moyen_m2
-FROM vente v
-JOIN bien b
-    ON v.id_bien = b.id_bien
-JOIN commune c
-    ON b.id_commune = c.id_commune
-JOIN departement d
-    ON c.code_departement = d.code_departement
-WHERE v.valeur_fonciere IS NOT NULL
-  AND b.surface_reelle_bati > 0
-GROUP BY d.code_departement, d.nom_departement
+    code_departement,
+    nom_departement,
+    ROUND(
+        SUM(valeur_fonciere)
+            / NULLIF(SUM(surface_reelle_bati), 0),
+        2
+    ) AS prix_moyen_m2
+FROM ventes_valides
+GROUP BY code_departement, nom_departement
 ORDER BY prix_moyen_m2 DESC
 LIMIT 10;
 
@@ -125,27 +138,35 @@ LIMIT 10;
 -- QUESTION 5
 -- Prix moyen au m² d'une maison située en Île-de-France
 -- Le code région 11 correspond à l'Île-de-France
+-- Calcul : valeur foncière totale / surface bâtie totale
 -- ------------------------------------------------------------
+WITH maisons_idf_valides AS (
+    SELECT
+        v.valeur_fonciere,
+        b.surface_reelle_bati
+    FROM vente v
+    JOIN bien b
+        ON v.id_bien = b.id_bien
+    JOIN type_local t
+        ON b.code_type_local = t.code_type_local
+    JOIN commune c
+        ON b.id_commune = c.id_commune
+    JOIN departement d
+        ON c.code_departement = d.code_departement
+    JOIN region r
+        ON d.code_region = r.code_region
+    WHERE t.libelle_type_local = 'Maison'
+      AND r.code_region = '11'
+      AND v.valeur_fonciere IS NOT NULL
+      AND b.surface_reelle_bati > 0
+)
 SELECT
     ROUND(
-        AVG(v.valeur_fonciere / b.surface_reelle_bati),
+        SUM(valeur_fonciere)
+            / NULLIF(SUM(surface_reelle_bati), 0),
         2
     ) AS prix_moyen_m2_maison_idf
-FROM vente v
-JOIN bien b
-    ON v.id_bien = b.id_bien
-JOIN type_local t
-    ON b.code_type_local = t.code_type_local
-JOIN commune c
-    ON b.id_commune = c.id_commune
-JOIN departement d
-    ON c.code_departement = d.code_departement
-JOIN region r
-    ON d.code_region = r.code_region
-WHERE t.libelle_type_local = 'Maison'
-  AND r.code_region = '11'
-  AND v.valeur_fonciere IS NOT NULL
-  AND b.surface_reelle_bati > 0;
+FROM maisons_idf_valides;
 
 -- ------------------------------------------------------------
 -- QUESTION 6
@@ -203,27 +224,40 @@ FROM ventes_trimestrielles;
 -- QUESTION 8
 -- Classement des régions par prix moyen au m² des appartements
 -- de plus de quatre pièces
+-- Calcul par région : valeur foncière totale / surface bâtie totale
 -- ------------------------------------------------------------
+WITH appartements_valides AS (
+    SELECT
+        r.code_region,
+        r.nom_region,
+        v.valeur_fonciere,
+        b.surface_reelle_bati
+    FROM vente v
+    JOIN bien b
+        ON v.id_bien = b.id_bien
+    JOIN type_local t
+        ON b.code_type_local = t.code_type_local
+    JOIN commune c
+        ON b.id_commune = c.id_commune
+    JOIN departement d
+        ON c.code_departement = d.code_departement
+    JOIN region r
+        ON d.code_region = r.code_region
+    WHERE t.libelle_type_local = 'Appartement'
+      AND b.nombre_pieces_principales > 4
+      AND v.valeur_fonciere IS NOT NULL
+      AND b.surface_reelle_bati > 0
+)
 SELECT
-    r.nom_region,
+    nom_region,
     COUNT(*) AS nombre_ventes,
-    ROUND(AVG(v.valeur_fonciere / b.surface_reelle_bati), 2) AS prix_moyen_m2
-FROM vente v
-JOIN bien b
-    ON v.id_bien = b.id_bien
-JOIN type_local t
-    ON b.code_type_local = t.code_type_local
-JOIN commune c
-    ON b.id_commune = c.id_commune
-JOIN departement d
-    ON c.code_departement = d.code_departement
-JOIN region r
-    ON d.code_region = r.code_region
-WHERE t.libelle_type_local = 'Appartement'
-  AND b.nombre_pieces_principales > 4
-  AND v.valeur_fonciere IS NOT NULL
-  AND b.surface_reelle_bati > 0
-GROUP BY r.code_region, r.nom_region
+    ROUND(
+        SUM(valeur_fonciere)
+            / NULLIF(SUM(surface_reelle_bati), 0),
+        2
+    ) AS prix_moyen_m2
+FROM appartements_valides
+GROUP BY code_region, nom_region
 ORDER BY prix_moyen_m2 DESC;
 
 -- ------------------------------------------------------------
@@ -249,11 +283,14 @@ ORDER BY nombre_ventes_t1 DESC;
 -- QUESTION 10
 -- Différence de prix moyen au m² entre les appartements de deux
 -- pièces et ceux de trois pièces
+-- Le prix moyen au m² de chaque groupe est pondéré par la surface :
+-- valeur foncière totale / surface bâtie totale
 -- ------------------------------------------------------------
-WITH prix_par_pieces AS (
+WITH appartements_valides AS (
     SELECT
         b.nombre_pieces_principales AS nombre_pieces,
-        AVG(v.valeur_fonciere / b.surface_reelle_bati) AS prix_moyen_m2
+        v.valeur_fonciere,
+        b.surface_reelle_bati
     FROM vente v
     JOIN bien b
         ON v.id_bien = b.id_bien
@@ -263,7 +300,14 @@ WITH prix_par_pieces AS (
       AND b.nombre_pieces_principales IN (2, 3)
       AND v.valeur_fonciere IS NOT NULL
       AND b.surface_reelle_bati > 0
-    GROUP BY b.nombre_pieces_principales
+),
+prix_par_pieces AS (
+    SELECT
+        nombre_pieces,
+        SUM(valeur_fonciere)
+            / NULLIF(SUM(surface_reelle_bati), 0) AS prix_moyen_m2
+    FROM appartements_valides
+    GROUP BY nombre_pieces
 ),
 comparaison AS (
     SELECT
@@ -280,7 +324,7 @@ SELECT
     ROUND(prix_m2_3_pieces, 2) AS prix_m2_3_pieces,
     ROUND(
         100.0 * (prix_m2_3_pieces - prix_m2_2_pieces)
-        / prix_m2_2_pieces,
+        / NULLIF(prix_m2_2_pieces, 0),
         2
     ) AS difference_pourcentage
 FROM comparaison;
